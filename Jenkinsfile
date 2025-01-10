@@ -2,41 +2,24 @@ pipeline {
     agent any
 
     stages {
-        /*
-
         stage('Build') {
-            agent {
-                docker {
-                    image 'node:18-alpine'
-                    reuseNode true
-                }
-            }
             steps {
-                sh '''
-                    ls -la
+                bat '''
+                    dir
                     node --version
                     npm --version
                     npm ci
                     npm run build
-                    ls -la
+                    dir
                 '''
             }
         }
-        */
 
         stage('Tests') {
             parallel {
                 stage('Unit tests') {
-                    agent {
-                        docker {
-                            image 'node:18-alpine'
-                            reuseNode true
-                        }
-                    }
-
                     steps {
-                        sh '''
-                            #test -f build/index.html
+                        bat '''
                             npm test
                         '''
                     }
@@ -48,22 +31,14 @@ pipeline {
                 }
 
                 stage('E2E') {
-                    agent {
-                        docker {
-                            image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
-                            reuseNode true
-                        }
-                    }
-
                     steps {
-                        sh '''
+                        bat '''
                             npm install serve
-                            node_modules/.bin/serve -s build &
-                            sleep 10
-                            npx playwright test  --reporter=html
+                            start /b node_modules/.bin/serve -s build
+                            timeout /t 10
+                            npx playwright test --reporter=html
                         '''
                     }
-
                     post {
                         always {
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright HTML Report', reportTitles: '', useWrapperFileDirectly: true])
